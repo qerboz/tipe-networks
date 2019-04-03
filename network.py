@@ -1,5 +1,16 @@
-from random import random
 import numpy as np
+import matplotlib.image as img
+import random as rand
+
+photo = img.imread('test.png','png') #Retourne l'image sous forme D'une liste de n listes de p listes de 3 éléments (ROUGE,VERT,BLEU) où n est le nombre de pixels en hauteur et p en longueur de l'image
+photo = photo * 255             #On convertit les données
+photo = photo.astype(np.uint8)  #en RGB de 0 à 255
+
+def pixelValue(pix):
+    '''Entrée: Un tableau de trois valeurs représentant un pixel
+        Sortie: Ces trois valeurs concaténées.
+    '''
+    return ('00'+str(pix[0]))[-3::] + ('00'+str(pix[1]))[-3::] + ('00'+str(pix[2]))[-3::]
 
 def sigmoid(x):
     """bijection de R vers ]-1,1["""
