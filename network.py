@@ -17,6 +17,7 @@ class Layer(n,p):
     def __init__(self,n):
         self.neurons = [random() for i in range(n)]
         self.coefs = [[random() for i in range(n)] for j in range(p)]
+        self.biases = [random() for i in range(n)]
 
 class Neural_Network(L):
     """entrer une liste comportant autant de termes qu'il y a de couches dans le réseau, et dont chaque terme correspond au nombre de neurones sur la couche associée à ce terme"""
@@ -27,14 +28,14 @@ class Neural_Network(L):
 
     def compute(self,X): #calcule la sortie en fonction de l'entrée
         for j in range(len(X)):
-            self.layers[0].neurons[j] = sigmoid(X[j])
+            self.layers[0].neurons[j] = sigmoid(X[j]-self.layers[0].biases[j])
         forward(0)
 
     def forward(self,i): #transfert des données des neurones d'une couche i vers la couche suivante
         if i > len(self.layers): #arrête la récursivité
             return
         for k in range(len(self.layers[i+1].neurons):
-            self.layers[i+1].neurons[k] = sigmoid(produitListes(self.layers[i].neurons,self.layers[i].coefs[k]))
+            self.layers[i+1].neurons[k] = sigmoid(produitListes(self.layers[i].neurons,self.layers[i].coefs[k])-self.layers[i+1].biases[k])
         forward(i+1) #récursivité pour transférer les données de la première couche à la dernière
 
     def cost(self,X,Y):
