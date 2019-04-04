@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.image as img
-import random as rand
+from random import random
 
 photo = img.imread('test.png','png') #Retourne l'image sous forme D'une liste de n listes de p listes de 3 éléments (ROUGE,VERT,BLEU) où n est le nombre de pixels en hauteur et p en longueur de l'image
 photo = photo * 255             #On convertit les données
