@@ -28,7 +28,7 @@ class Neural_Network(L):
 
     def compute(self,X): #calcule la sortie en fonction de l'entrée
         for j in range(len(X)):
-            self.layers[0].neurons[j] = sigmoid(X[j]-self.layers[0].biases[j])
+            self.layers[0].neurons[j] = sigmoid(X[j])
         forward(0)
 
     def forward(self,i): #transfert des données des neurones d'une couche i vers la couche suivante
