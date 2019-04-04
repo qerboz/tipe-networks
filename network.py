@@ -23,7 +23,8 @@ class Neural_Network(L):
     """entrer une liste comportant autant de termes qu'il y a de couches dans le réseau, et dont chaque terme correspond au nombre de neurones sur la couche associée à ce terme"""
     def __init__(self,L):
         self.layers = [] #liste contenant les couches (des objets)
-        for i in range(len(L)):
+        L.append(0) #Couche finale sans poids
+        for i in range(len(L)-1): #Ne pas deborder dans la ligne suivante
             self.layers.append(Layer(L[i],L[i+1])) #création de chaque couche du réseau
 
     def compute(self,X): #calcule la sortie en fonction de l'entrée
