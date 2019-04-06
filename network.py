@@ -5,6 +5,10 @@ def sigmoid(x):
     """bijection de R vers ]-1,1["""
     return 1/(1+np.exp(-x))
 
+def sigmoidPrime(x):
+    """Dérivée de la fonction sigmoide"""
+    return np.exp(-x)/(1+np.exp(-x))**2
+
 def produitListes(L1,L2):
     """entrer deux listes de taille n pour obtenir une liste de taille n dont chaque terme est le produit des termes de meme rang des listes d'entrée"""
     sum = 0
@@ -35,7 +39,7 @@ class Neural_Network(L):
     def forward(self,i): #transfert des données des neurones d'une couche i vers la couche suivante
         if i > len(self.layers): #arrête la récursivité
             return
-        for k in range(len(self.layers[i+1].neurons):
+        for k in range(len(self.layers[i+1].neurons)):
             self.layers[i+1].neurons[k] = sigmoid(produitListes(self.layers[i].neurons,self.layers[i].coefs[k])+self.layers[i+1].biases[k])
         forward(i+1) #récursivité pour transférer les données de la première couche à la dernière
 
@@ -45,5 +49,9 @@ class Neural_Network(L):
         for i in range(len(self.layers[-1].neurons)):
             self.cost += (self.layers[-1].neurons[i]-sigmoid(Y[i]))**2
 
+    def partialDerivative(self,X):
+        """Dérivée partielles des valeurs d'un neurone par rapport aux coefs et biais de la couche précédente"""
+
     def grad(self,X,Y):
         cost(X,Y)
+        
