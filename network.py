@@ -16,6 +16,11 @@ def produitListes(L1,L2):
         sum += L1[i]*L2[i]
     return sum
 
+def scalaireListe(x,L):
+    """multiplication de tous les termes d'une liste par un scalaire"""
+    for i in range(len(L)):
+        L[i] = x*L[i]
+
 class Layer(n,p):
     """entrer le nombre de neurones sur cette couche et sur la couche suivante"""
     def __init__(self,n):
