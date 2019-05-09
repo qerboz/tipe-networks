@@ -5,6 +5,17 @@ def sigmoid(x):
     """bijection de R vers ]-1,1["""
     return 1/(1+np.exp(-x))
 
+def elu(x):
+   """bijection de R dans R, continue dérivable strictement croissante"""
+    if x <0:
+        return exp(x)-1
+    return x
+def d_elu(x):
+    """dérivée de la fonction elu"""
+    if x<0:
+        return exp(x)
+    return 1
+
 def produitListes(L1,L2):
     """entrer deux listes de taille n pour obtenir une liste de taille n dont chaque terme est le produit des termes de meme rang des listes d'entrée"""
     sum = 0
