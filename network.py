@@ -44,7 +44,7 @@ def sommeListe(L):
         somme += x
     return x
 
-class Layer():
+class layer():
     """entrer le nombre de neurones sur cette couche et sur la couche suivante"""
     def __init__(self,n,p):
         self.neurons = [random() for i in range(n)]
@@ -61,7 +61,7 @@ class neuralNetwork():
         self.gradient
         L.append(0) #Couche finale sans poids
         for i in range(len(L)-1): #Ne pas deborder dans la ligne suivante
-            self.layers.append(Layer(L[i],L[i+1])) #création de chaque couche du réseau
+            self.layers.append(layer(L[i],L[i+1])) #création de chaque couche du réseau
  
     def compute(self,X): #calcule la sortie en fonction de l'entrée
         for j in range(len(X)):
@@ -81,10 +81,10 @@ class neuralNetwork():
         for i in range(len(self.layers[-1].neurons)):
             self.cost += (self.layers[-1].neurons[i]-elu(Y[i]))**2
 
-    def partialDerivative(self):
+    def partialDerivative(self,Y):
         """Dérivée des neurones de chacune des couches par rapport aux neurones de la couche précédente"""
         self.listeDer = []
-        for i in range(len(self.layers)):
+        for i in range(len(self.layers)-1):
             L = []
             for j in range(len(self.layers[i+1].neurons)):
                 L.append([])
@@ -92,13 +92,14 @@ class neuralNetwork():
                 for k in range(len(self.layers[i].neurons)):
                     L[j].append(self.layers[i].coefs[j][k]*prime)
             self.listeDer.append(L)
-        self.sommeDer = [[sommeListe(self.listeDer[0][i] for i in range(len(self.layers[-2].neurons))]
-        for i in range(len(self.listeDer)):
-            sommeDer.append(produitListe(sommeDer[-1],sommeListe(self.listeDer[0][i] for i in range(len(self.layers[-2].neurons)
-                                     
-        for i in range(len(self.layers)):
-            for j in range(len(self.layers[i])):
-                derPar = produit([sommeListe(self.listeDer[i] #A finir/retravailler
+        self.listeDer.append([2*(self.layers[-1].neurons[k]-Y[k]) for k in range(len(self.layers[-1].neurons))]) #dérivée de C par rapport à la dernière couche
+        self.sommeDer = listeDer[-1:]
+        for i in range(len(self.layers)-1):
+            self.sommeDer.append([sommeListe(produitListes(listeDer[-i-1][j],sommeDer[-1])) for j in range(len(self.layers[-i]))])
+        
+        # for i in range(len(self.layers)):
+        #     for j in range(len(self.layers[i])):
+        #         derPar = produit([sommeListe(self.listeDer[i] #A finir/retravailler
      
     def deriveeRec(self,i):
          ''' renvoie '''
@@ -111,4 +112,3 @@ class neuralNetwork():
             for j in range(len(self.layers[i])):
                 self.gradient.append(sommeListe(self.layers[i].neurons) * dElu(invElu(self.layers[i].neurons[j])) * partDer[i][j])
         return 'oui'
-         
