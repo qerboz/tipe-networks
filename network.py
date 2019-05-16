@@ -28,10 +28,10 @@ def invElu(x):
 
 def produitListes(L1,L2):
     """entrer deux listes de taille n pour obtenir une liste de taille n dont chaque terme est le produit des termes de meme rang des listes d'entrée"""
-    sum = 0
+    L = []
     for i in range(len(L1)):
-        sum += L1[i]*L2[i]
-    return sum
+        L.append(L1[i]*L2[i])
+    return L
 
 def scalaireListe(x,L):
     """multiplication de tous les termes d'une liste par un scalaire"""
@@ -42,7 +42,7 @@ def sommeListe(L):
     somme = 0
     for x in L:
         somme += x
-    return x
+    return somme
 
 class layer():
     """entrer le nombre de neurones sur cette couche et sur la couche suivante"""
@@ -58,7 +58,7 @@ class neuralNetwork():
         self.cost = []
         self.listeDer = []
         self.sommeDer = []
-        self.gradient
+        self.gradient = []
         L.append(0) #Couche finale sans poids
         for i in range(len(L)-1): #Ne pas deborder dans la ligne suivante
             self.layers.append(layer(L[i],L[i+1])) #création de chaque couche du réseau
@@ -66,14 +66,17 @@ class neuralNetwork():
     def compute(self,X): #calcule la sortie en fonction de l'entrée
         for j in range(len(X)):
             self.layers[0].neurons[j] = elu(X[j])
-            forward(0)
+            self.forward(0,len(self.layers))
  
-    def forward(self,i): #transfert des données des neurones d'une couche i vers la couche suivante
-        if i > len(self.layers): #arrête la récursivité
+    def forward(self,i,n): #transfert des données des neurones d'une couche i vers la couche suivante
+        if i >= n-1: #arrête la récursivité
             return
         for k in range(len(self.layers[i+1].neurons)):
-            self.layers[i+1].neurons[k] = elu(produitListes(self.layers[i].neurons,self.layers[i].coefs[k])+self.layers[i+1].biases[k])
-        forward(i+1) #récursivité pour transférer les données de la première couche à la dernière
+            valeur =  elu(sommeListe(produitListes(self.layers[i].neurons,self.layers[i].coefs[k]))+self.layers[i+1].biases[k])
+            self.layers[i+1].neurons[k] = valeur
+        self.forward(i+1,n)#récursivité pour transférer les données de la première couche à la dernière
+        print('OKAY')
+        print(len(test.layers))
  
     def cost(self,X,Y):
         self.cost = 0
@@ -96,19 +99,16 @@ class neuralNetwork():
         self.sommeDer = listeDer[-1:]
         for i in range(len(self.layers)-1):
             self.sommeDer.append([sommeListe(produitListes(listeDer[-i-1][j],sommeDer[-1])) for j in range(len(self.layers[-i]))])
-        
-        # for i in range(len(self.layers)):
-        #     for j in range(len(self.layers[i])):
-        #         derPar = produit([sommeListe(self.listeDer[i] #A finir/retravailler
-     
-    def deriveeRec(self,i):
-         ''' renvoie '''
-         return "oui"
                             
-    def grad(self,exper,theor):
+    def grad(self,theor):
+        ''' Entree: valeurs theoriques attendues
+            Sortie: Le vecteur gradient correspondant, dirigé vers l'augmentation la plus rapide.'''
         self.gradient = []
-        for i in range(len(self.layers)):
-            partDer = partialDerivative(self,i)
-            for j in range(len(self.layers[i])):
-                self.gradient.append(sommeListe(self.layers[i].neurons) * dElu(invElu(self.layers[i].neurons[j])) * partDer[i][j])
-        return 'oui'
+        self.gradientBias = []
+        partialDerivative(theor)
+        partDer = self.sommeDer
+        for i in range(len(self.layers)-1):
+            for k in range(len(self.layers[i+1])):
+                for j in range(len(self.layers[i])):
+                    self.gradient.append(self.layers[i].neurons[j]*dElu(invElu(self.layers[i+1].neurons[k])) * partDer[i+1][k])
+                self.gradientBias.append(sommeListe([dElu(invElu(self.layers[i].neurons[j])) * partDer[i+1][k] for k in range(len(self.layers[i+1]))]))
