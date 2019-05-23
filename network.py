@@ -66,7 +66,7 @@ class neuralNetwork():
     def compute(self,X): #calcule la sortie en fonction de l'entrée
         for j in range(len(X)):
             self.layers[0].neurons[j] = elu(X[j])
-            self.forward(0,len(self.layers))
+        self.forward(0,len(self.layers))
  
     def forward(self,i,n): #transfert des données des neurones d'une couche i vers la couche suivante
         if i >= n-1: #arrête la récursivité
@@ -87,28 +87,29 @@ class neuralNetwork():
     def partialDerivative(self,Y):
         """Dérivée des neurones de chacune des couches par rapport aux neurones de la couche précédente"""
         self.listeDer = []
-        for i in range(len(self.layers)-1):
+        for i in range(len(self.layers)-1):#Pour chaque couche (-1 car on utilise la couche suivante)
+            prime = [dElu(invElu(self.layers[i+1].neurons[j])) for j in range(len(self.layers[i+1].neurons))]
             L = []
-            for j in range(len(self.layers[i+1].neurons)):
+            for k in range(len(self.layers[i].neurons)):#Pour chaque neurone dans la couche suivante
                 L.append([])
-                prime = dElu(invElu(self.layers[i+1].neurons[j]))
-                for k in range(len(self.layers[i].neurons)):
-                    L[j].append(self.layers[i].coefs[j][k]*prime)
+                for j in range(len(self.layers[i+1].neurons)):#Pour chaque neurone dans la couche actuelle
+                    L[k].append(self.layers[i].coefs[j][k]*prime[j])#On calcule la dérivée de a^(i+1)_(k,j) par rapport à a^(i)_(k,j) (c.f. maths)
             self.listeDer.append(L)
-        self.listeDer.append([2*(self.layers[-1].neurons[k]-Y[k]) for k in range(len(self.layers[-1].neurons))]) #dérivée de C par rapport à la dernière couche
-        self.sommeDer = listeDer[-1:]
-        for i in range(len(self.layers)-1):
-            self.sommeDer.append([sommeListe(produitListes(listeDer[-i-1][j],sommeDer[-1])) for j in range(len(self.layers[-i]))])
+        #self.listeDer.append([[2*(self.layers[-1].neurons[k]-Y[k])]for k in range(len(self.layers[-1].neurons))]) #dérivée de C par rapport à la dernière couche
+        self.sommeDer = [[2*(self.layers[-1].neurons[k]-Y[k])for k in range(len(self.layers[-1].neurons))]]
+        for i in range(0,len(self.layers)-2):
+            print('TYPE',type(self.listeDer[-i-1][j]),type(self.sommeDer[-1]))
+            self.sommeDer.append([sommeListe(produitListes(self.listeDer[-i-1][j],self.sommeDer[-1])) for j in range(len(self.layers[-i-1].neurons))])
                             
     def grad(self,theor):
         ''' Entree: valeurs theoriques attendues
             Sortie: Le vecteur gradient correspondant, dirigé vers l'augmentation la plus rapide.'''
         self.gradient = []
         self.gradientBias = []
-        partialDerivative(theor)
-        partDer = self.sommeDer
+        self.partialDerivative(theor)
         for i in range(len(self.layers)-1):
-            for k in range(len(self.layers[i+1])):
-                for j in range(len(self.layers[i])):
-                    self.gradient.append(self.layers[i].neurons[j]*dElu(invElu(self.layers[i+1].neurons[k])) * partDer[i+1][k])
-                self.gradientBias.append(sommeListe([dElu(invElu(self.layers[i].neurons[j])) * partDer[i+1][k] for k in range(len(self.layers[i+1]))]))
+            for j in range(len(self.layers[i].neurons)):
+                for k in range(len(self.layers[i+1].neurons)):
+                    self.gradient.append(self.layers[i].neurons[j]*dElu(invElu(self.layers[i+1].neurons[k])) * self.sommeDer[-i-1][j])
+                    print('yay')
+                self.gradientBias.append(sommeListe([dElu(invElu(self.layers[i].neurons[j])) * self.sommeDer[-i-1][l] for l in range(len(self.layers[i+1].neurons))]))
