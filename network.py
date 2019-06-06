@@ -90,26 +90,28 @@ class neuralNetwork():
         for i in range(len(self.layers)-1):#Pour chaque couche (-1 car on utilise la couche suivante)
             prime = [dElu(invElu(self.layers[i+1].neurons[j])) for j in range(len(self.layers[i+1].neurons))]
             L = []
-            for k in range(len(self.layers[i].neurons)):#Pour chaque neurone dans la couche suivante
+            for k in range(len(self.layers[i].neurons)):#Pour chaque neurone dans la couche actuelle
                 L.append([])
-                for j in range(len(self.layers[i+1].neurons)):#Pour chaque neurone dans la couche actuelle
+                for j in range(len(self.layers[i+1].neurons)):#Pour chaque neurone dans la couche suivante
                     L[k].append(self.layers[i].coefs[j][k]*prime[j])#On calcule la dérivée de a^(i+1)_(k,j) par rapport à a^(i)_(k,j) (c.f. maths)
             self.listeDer.append(L)
         #self.listeDer.append([[2*(self.layers[-1].neurons[k]-Y[k])]for k in range(len(self.layers[-1].neurons))]) #dérivée de C par rapport à la dernière couche
         self.sommeDer = [[2*(self.layers[-1].neurons[k]-Y[k])for k in range(len(self.layers[-1].neurons))]]
-        for i in range(0,len(self.layers)-2):
-            print('TYPE',type(self.listeDer[-i-1][j]),type(self.sommeDer[-1]))
-            self.sommeDer.append([sommeListe(produitListes(self.listeDer[-i-1][j],self.sommeDer[-1])) for j in range(len(self.layers[-i-1].neurons))])
-                            
+        for i in range(0,len(self.layers)-1):
+            self.sommeDer.append([sommeListe(produitListes(self.listeDer[-i-1][j],self.sommeDer[-1])) for j in range(len(self.listeDer[-i-1]))])
+            #print('TYPE',type(self.listeDer[-i-1][j]),type(self.sommeDer[-1]))
+    
     def grad(self,theor):
         ''' Entree: valeurs theoriques attendues
-            Sortie: Le vecteur gradient correspondant, dirigé vers l'augmentation la plus rapide.'''
+            Sortie: Le vecteur gradient correspondant, dirige vers l'augmentation la plus rapide.'''
         self.gradient = []
         self.gradientBias = []
         self.partialDerivative(theor)
         for i in range(len(self.layers)-1):
             for j in range(len(self.layers[i].neurons)):
                 for k in range(len(self.layers[i+1].neurons)):
+                    print('yay?',i,j,k)
                     self.gradient.append(self.layers[i].neurons[j]*dElu(invElu(self.layers[i+1].neurons[k])) * self.sommeDer[-i-1][j])
-                    print('yay')
-                self.gradientBias.append(sommeListe([dElu(invElu(self.layers[i].neurons[j])) * self.sommeDer[-i-1][l] for l in range(len(self.layers[i+1].neurons))]))
+                    print('yay',i,j,k)
+                print(len(self.sommeDer[-i-1]),len(self.layers[i+1].neurons))
+                self.gradientBias.append(sommeListe([dElu(invElu(self.layers[i].neurons[j])) * self.sommeDer[-i-1][l] for l in range(len(self.sommeDer[-i-1]))]))
