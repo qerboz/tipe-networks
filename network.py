@@ -23,7 +23,7 @@ def dElu(x):
 
 def invElu(x):
     if x<0:
-       return np.ln(x+1)
+       return np.log(x+1)
     return x
 
 def produitListes(L1,L2):
@@ -112,8 +112,25 @@ class neuralNetwork():
             self.gradientBias.append([])
             for j in range(len(self.layers[i].neurons)):
                 for k in range(len(self.layers[i+1].neurons)):
-                    print('yay?',i,j,k)
+  #                  print('yay?',i,j,k)
                     self.gradient[i].append(self.layers[i].neurons[j]*dElu(invElu(self.layers[i+1].neurons[k])) * self.sommeDer[-i-1][j])
-                    print('yay',i,j,k)
-                print(len(self.sommeDer[-i-1]),len(self.layers[i+1].neurons))
+ #                   print('yay',i,j,k)
+#                print(len(self.sommeDer[-i-1]),len(self.layers[i+1].neurons))
                 self.gradientBias[i].append(sommeListe([dElu(invElu(self.layers[i].neurons[j])) * self.sommeDer[-i-1][l] for l in range(len(self.sommeDer[-i-1]))]))
+
+    def modifWeights(self):
+        gradient = self.gradient
+        for k in range(len(self.layers)):
+            for i in range(len(self.layers[k].coefs)):
+                for j in range(len(self.layers[k].coefs[i])):
+                    self.layers[k].coefs[i][j] -= gradient[k][i] * 0.02 * self.layers[k].neurons[j]
+
+def train(net,nbr):
+    n = len(net.layers[0].neurons)
+    p = len(net.layers[-1].neurons)
+    food = [1]*n
+    for k in range(nbr):
+        net.compute(food)
+        net.grad([0.4]*p)
+        net.modifWeights()
+    print(net.layers[-1].neurons)  
