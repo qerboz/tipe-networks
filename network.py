@@ -1,27 +1,30 @@
 from random import random
 import numpy as np
 
-def sigmoid(x):
+def sig(x):
     """bijection de R vers ]-1,1["""
     return 1/(1+np.exp(-x))
 
-def sigmoidPrime(x):
-    """Dérivée de la fonction sigmoide"""
+def dsig(x):
+    """Dérivée de la fonction elue"""
     return np.exp(-x)/(1+np.exp(-x))**2
+
+def invsig(x):
+    return -np.log(1/x-1)
   
 def elu(x):
-    """bijection de R dans R, continue dérivable strictement croissante"""
+    """bijection de R dans ]-1,+inf[, continue dérivable strictement croissante"""
     if x <0:
        return np.exp(x)-1
     return x
   
-def dElu(x):
+def delu(x):
     """dérivée de la fonction elu"""
     if x<0:
         return np.exp(x)
     return 1
 
-def invElu(x):
+def invelu(x):
     if x<0:
        return np.log(x+1)
     return x
@@ -88,12 +91,12 @@ class neuralNetwork():
         """Dérivée des neurones de chacune des couches par rapport aux neurones de la couche précédente"""
         self.listeDer = []
         for i in range(len(self.layers)-1):#Pour chaque couche (-1 car on utilise la couche suivante)
-            prime = [dElu(invElu(self.layers[i+1].neurons[j])) for j in range(len(self.layers[i+1].neurons))]
+            prime = [delu(invelu(self.layers[i+1].neurons[j])) for j in range(len(self.layers[i+1].neurons))]
             L = []
             for k in range(len(self.layers[i].neurons)):#Pour chaque neurone dans la couche actuelle
                 L.append([])
                 for j in range(len(self.layers[i+1].neurons)):#Pour chaque neurone dans la couche suivante
-                    L[k].append(self.layers[i].coefs[j][k]*prime[j])#On calcule la dérivée de a^(i+1)_(k,j) par rapport à a^(i)_(k,j) (c.f. maths)
+                    L[k].append(self.layers[i].coefs[j][k]*prime[j])#On calcule la dérivée de a^(i+1)_(j) par rapport à a^(i)_(k) (c.f. maths)
             self.listeDer.append(L)
         #self.listeDer.append([[2*(self.layers[-1].neurons[k]-Y[k])]for k in range(len(self.layers[-1].neurons))]) #dérivée de C par rapport à la dernière couche
         self.sommeDer = [[2*(self.layers[-1].neurons[k]-elu(Y[k]))for k in range(len(self.layers[-1].neurons))]]
@@ -113,17 +116,21 @@ class neuralNetwork():
             for j in range(len(self.layers[i].neurons)):
                 #for k in range(len(self.layers[i+1].neurons)):
                     #print('yay?',i,j,k)
-                self.gradient[i].append([self.layers[i].neurons[j]*dElu(invElu(self.layers[i+1].neurons[k]))*self.sommeDer[-i-1][j] for k in range(len(self.layers[i+1].neurons))])
+                self.gradient[i].append([self.layers[i].neurons[j]*delu(invelu(self.layers[i+1].neurons[k]))*self.sommeDer[-i-1][j] for k in range(len(self.layers[i+1].neurons))])
                     #print('yay',i,j,k)
                 #print(len(self.sommeDer[-i-1]),len(self.layers[i+1].neurons))
-                self.gradientBias[i].append(sommeListe([dElu(invElu(self.layers[i].neurons[j]))*self.sommeDer[-i-1][l] for l in range(len(self.sommeDer[-i-1]))]))
+                self.gradientBias[i].append(sommeListe([delu(invelu(self.layers[i+1].neurons[j]))*self.sommeDer[-i-2][l] for l in range(len(self.sommeDer[-i-2]))]))
 
     def modifWeights(self):
         for k in range(len(self.layers)):
             for i in range(len(self.layers[k].coefs)):
-                n = len(self.layers[k].coefs)
                 for j in range(len(self.layers[k].coefs[i])):
-                    self.layers[k].coefs[i][j] -= self.gradient[k][j][i]*0.05*self.layers[k].neurons[j]
+                    self.layers[k].coefs[i][j] -= self.gradient[k][j][i]*0.01*self.layers[k].neurons[j]
+
+    def modifBiases(self):
+        for i in range(1,len(self.layers)):
+            for j in range(len(self.layers[i].neurons)):
+                self.layers[i].biases[j] -= self.gradientBias[i-1][j]*0.01*self.layers[i].neurons[j]
 
     def train(self,nbr):
         n = len(self.layers[0].neurons)
@@ -133,4 +140,5 @@ class neuralNetwork():
             self.compute(food)
             self.grad([0.9]*p)
             self.modifWeights()
+            self.modifBiases()
             print(self.layers[-1].neurons)
