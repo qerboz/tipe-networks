@@ -1,4 +1,4 @@
-rom random import random
+from random import random
 import numpy as np
 
 def sigmoid(x):
