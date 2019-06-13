@@ -1,4 +1,4 @@
-from random import random
+rom random import random
 import numpy as np
 
 def sigmoid(x):
@@ -75,8 +75,8 @@ class neuralNetwork():
             valeur =  elu(sommeListe(produitListes(self.layers[i].neurons,self.layers[i].coefs[k]))+self.layers[i+1].biases[k])
             self.layers[i+1].neurons[k] = valeur
         self.forward(i+1,n)#récursivité pour transférer les données de la première couche à la dernière
-        print('OKAY')
-        print(len(test.layers))
+        #print('OKAY')
+        #print(len(test.layers))
  
     def cost(self,X,Y):
         self.cost = 0
@@ -112,25 +112,24 @@ class neuralNetwork():
             self.gradientBias.append([])
             for j in range(len(self.layers[i].neurons)):
                 for k in range(len(self.layers[i+1].neurons)):
-  #                  print('yay?',i,j,k)
-                    self.gradient[i].append(self.layers[i].neurons[j]*dElu(invElu(self.layers[i+1].neurons[k])) * self.sommeDer[-i-1][j])
- #                   print('yay',i,j,k)
-#                print(len(self.sommeDer[-i-1]),len(self.layers[i+1].neurons))
-                self.gradientBias[i].append(sommeListe([dElu(invElu(self.layers[i].neurons[j])) * self.sommeDer[-i-1][l] for l in range(len(self.sommeDer[-i-1]))]))
+                    #print('yay?',i,j,k)
+                    self.gradient[i].append(self.layers[i].neurons[j]*dElu(invElu(self.layers[i+1].neurons[k]))*self.sommeDer[-i-1][j])
+                    #print('yay',i,j,k)
+                #print(len(self.sommeDer[-i-1]),len(self.layers[i+1].neurons))
+                self.gradientBias[i].append(sommeListe([dElu(invElu(self.layers[i].neurons[j]))*self.sommeDer[-i-1][l] for l in range(len(self.sommeDer[-i-1]))]))
 
     def modifWeights(self):
-        gradient = self.gradient
         for k in range(len(self.layers)):
             for i in range(len(self.layers[k].coefs)):
                 for j in range(len(self.layers[k].coefs[i])):
-                    self.layers[k].coefs[i][j] -= gradient[k][i] * 0.02 * self.layers[k].neurons[j]
+                    self.layers[k].coefs[i][j] -= self.gradient[k][i]*0.02*self.layers[k].neurons[j]
 
-def train(net,nbr):
-    n = len(net.layers[0].neurons)
-    p = len(net.layers[-1].neurons)
-    food = [1]*n
-    for k in range(nbr):
-        net.compute(food)
-        net.grad([0.4]*p)
-        net.modifWeights()
-    print(net.layers[-1].neurons)  
+    def train(self,nbr):
+        n = len(self.layers[0].neurons)
+        p = len(self.layers[-1].neurons)
+        food = [1]*n
+        for k in range(nbr):
+            self.compute(food)
+            self.grad([0.9]*p)
+            self.modifWeights()
+            print(self.layers[-1].neurons)
