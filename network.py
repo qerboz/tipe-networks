@@ -111,9 +111,9 @@ class neuralNetwork():
             self.gradient.append([])
             self.gradientBias.append([])
             for j in range(len(self.layers[i].neurons)):
-                for k in range(len(self.layers[i+1].neurons)):
+                #for k in range(len(self.layers[i+1].neurons)):
                     #print('yay?',i,j,k)
-                    self.gradient[i].append(self.layers[i].neurons[j]*dElu(invElu(self.layers[i+1].neurons[k]))*self.sommeDer[-i-1][j])
+                self.gradient[i].append([self.layers[i].neurons[j]*dElu(invElu(self.layers[i+1].neurons[k]))*self.sommeDer[-i-1][j] for k in range(len(self.layers[i+1].neurons))])
                     #print('yay',i,j,k)
                 #print(len(self.sommeDer[-i-1]),len(self.layers[i+1].neurons))
                 self.gradientBias[i].append(sommeListe([dElu(invElu(self.layers[i].neurons[j]))*self.sommeDer[-i-1][l] for l in range(len(self.sommeDer[-i-1]))]))
@@ -121,8 +121,9 @@ class neuralNetwork():
     def modifWeights(self):
         for k in range(len(self.layers)):
             for i in range(len(self.layers[k].coefs)):
+                n = len(self.layers[k].coefs)
                 for j in range(len(self.layers[k].coefs[i])):
-                    self.layers[k].coefs[i][j] -= self.gradient[k][i]*0.02*self.layers[k].neurons[j]
+                    self.layers[k].coefs[i][j] -= self.gradient[k][j][i]*0.05*self.layers[k].neurons[j]
 
     def train(self,nbr):
         n = len(self.layers[0].neurons)
