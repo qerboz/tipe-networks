@@ -7,13 +7,13 @@ def elu(x):
        return np.exp(x)-1
     return x
   
-def delu(x):
+def dElu(x):
     """dérivée de la fonction elu"""
     if x<0:
         return np.exp(x)
     return 1
 
-def invelu(x):
+def invElu(x):
     if x<0:
        return np.log(x+1)
     return x
@@ -39,9 +39,9 @@ def sommeListe(L):
 class layer():
     """entrer le nombre de neurones sur cette couche et sur la couche suivante"""
     def __init__(self,n,p):
-        self.neurons = [random() for i in range(n)]
-        self.coefs = [[random() for i in range(n)] for j in range(p)]
-        self.biases = [random() for i in range(n)]
+        self.neurons = np.array([random() for i in range(n)])
+        self.coefs = np.array([[random() for i in range(n)] for j in range(p)])
+        self.biases = np.array([random() for i in range(n)])
 
 class neuralNetwork():
     """entrer une liste comportant autant de termes qu'il y a de couches dans le réseau, et dont chaque terme correspond au nombre de neurones sur la couche associée à ce terme"""
@@ -50,7 +50,7 @@ class neuralNetwork():
         self.cost = []
         self.listeDer = []
         self.sommeDer = []
-        self.gradient = []
+        self.e = []
         L.append(0) #Couche finale sans poids
         for i in range(len(L)-1): #Ne pas deborder dans la ligne suivante
             self.layers.append(layer(L[i],L[i+1])) #création de chaque couche du réseau
@@ -76,11 +76,22 @@ class neuralNetwork():
         for i in range(len(self.layers[-1].neurons)):
             self.cost += (self.layers[-1].neurons[i]-elu(Y[i]))**2
 
+    def grad(self,theor):
+        Y = self.layers[-1].neurons #Couche de sortie/reponse
+        self.e = np.array([[ dElu(invElu(self.layers[-1].neurons[i]))*(Y[i] - theor[i]) for i in range(len(self.layers[-1].neurons)) ]] )#La liste accueillant les erreurs e_i^k <-> erreur entre experimental et desiree pour le neurone i de la couche k
+        for k in range( len(self.layers) -1 ): #Pour chaque couche du reseau moins la derniere (deja effectue)
+            self.e = np.append(self.e , [[]] , axis=1)
+            for i in range( len(self.layers[-1-k-1].neurons)):
+                e = dElu(invElu(self.layers[-1-k-1].neurons[i]))*sommeListe( produitListes( self.layers[-1-k-1].coefs[:,i],self.e[-1]))
+                print(e)
+                self.e[k+1] = np.append(self.e[k+1] , [e])
+            #self.e.append( [ dElu(invElu(self.layers[-1-k-1].neurons[j])*sommeListe(produitListes(self.layers[-1-k-1].coefs[j],self.e[-1])))for j in range(len(self.layers[-1-k].neurons)) ])
+        
     def modifWeights(self):
         for k in range(len(self.layers)):
             for i in range(len(self.layers[k].coefs)):
                 for j in range(len(self.layers[k].coefs[i])):
-                    self.layers[k].coefs[i][j] -= self.gradient[k][j][i]*0.01*self.layers[k].neurons[j]
+                    self.layers[k].coefs[i][j] -= self.e[k][i]*0.01*self.layers[k].neurons[j]
 
     def modifBiases(self):
         for i in range(1,len(self.layers)):
@@ -95,5 +106,5 @@ class neuralNetwork():
             self.compute(food)
             self.grad([0.9]*p)
             self.modifWeights()
-            self.modifBiases()
+            #self.modifBiases()
             print(self.layers[-1].neurons)
