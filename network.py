@@ -90,13 +90,13 @@ class neuralNetwork():
             for j in range(len(self.layers[i].neurons)):
                 self.layers[i].biases[j] -= self.gradientBias[i-1][j]*0.01*self.layers[i].neurons[j]
 
-    def train(self,nbr):
+    def train(self,nbr,n):
         n = len(self.layers[0].neurons)
         p = len(self.layers[-1].neurons)
-        result = [[random() for i in range(p)] for i in range(5)]
-        food = [[random() for i in range(n)] for i in range(5)]
+        result = [[random() for i in range(p)] for i in range(n)]
+        food = [[random() for i in range(n)] for i in range(n)]
         for k in range(nbr):
-            a = randint(0,2)
+            a = randint(0,n-1)
             self.compute(food[a])
             self.grad(result[a])
             self.modifWeights()
