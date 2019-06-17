@@ -21,7 +21,7 @@ def enleverDoublons(liste):
         '''
     sortie = []
     for x in liste:
-        if x not in res:
+        if x not in sortie:
             sortie.append(x)
     return sortie
 
@@ -137,23 +137,22 @@ class reseauNeuronal():
             for j in range(len(self.couches[i].neurones)):
                 self.couches[i].biais[j] -= self.erreur[i][j]*0.05
 
-    def entrainer(reseau,base,nbr):
+    def entrainer(self,base,nbr):
         n = len(base)
         for i in range(nbr):
             entree = randint(0,n-1)
-            reseau.calcul(base[entree][0] )
-            reseau.calcErreur(sorties[base[entree][1]])
-            reseau.modifPoids()
-            reseau.modifBiais()
+            self.calcul(base[entree][0] )
+            self.calcErreur(sorties[base[entree][1]])
+            self.modifPoids()
+            self.modifBiais()
 
 
 #####
 #Main
 #####
-reconnaisseur = reseauNeuronal([25,20,15,10,6])
 
 ###obtention des donnees d'entrainement
-os.chdir("..\TrainDB")
+os.chdir(".\TrainDB")
 donneesEntrainementNoms = glob.glob("*.png")
 especes = enleverDoublons([name.split("_")[0] for name in donneesEntrainementNoms])
 
@@ -163,10 +162,12 @@ donneesEntrainement = [(imgEnNombres(donneesEntrainement[i]),donneesEntrainement
 
 ###obtention des donnees de test
 os.chdir("..\TestDB")
-donneesEntrainementNoms = glob.glob("*.png")
-donneesEntrainement = np.array([np.floor(img.imread(donneesEntrainementNoms[i])*255).astype(np.uint8) for i in range(len(donneesEntrainementNoms))])
-donneesEntrainement = [(imgEnNombres(donneesEntrainement[i]),donneesEntrainementNoms[i].split("_")[0] ) for i in range(len(donneesEntrainement))]
+donneesTestNoms = glob.glob("*.png")
+donneesTest = np.array([np.floor(img.imread(donneesTestNoms[i])*255).astype(np.uint8) for i in range(len(donneesTestNoms))])
+donneesTest = [(imgEnNombres(donneesTest[i]),donneesTestNoms[i].split("_")[0] ) for i in range(len(donneesTest))]
 
 ###Sorties theoriques à partir du nom de l'espèce
 sorties = [(especes[i],[1*(i==j) for j in range(len(especes))]) for i in range(len(especes))]
 sorties = dict(sorties)
+
+reconnaisseur = reseauNeuronal([25,20,15,10,len(especes)])
