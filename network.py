@@ -142,7 +142,7 @@ class reseauNeuronal():
         for i in range(nbr):
             entree = randint(0,n-1)
             self.calcul(base[entree][0] )
-            self.calcErreur(sorties[base[entree][1]])
+            self.calcErreur(base[entree][1])
             self.modifPoids()
             self.modifBiais()
 
