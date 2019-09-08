@@ -2,7 +2,7 @@
 #Imports
 ########
 
-from random import random,randint
+from random import random
 import numpy as np
 import matplotlib.image as img
 import matplotlib.pyplot as plt
@@ -96,9 +96,13 @@ class couche():
 class reseauNeuronal():
     """entrer une liste comportant autant de termes qu'il y a de couches dans le reseau, et dont chaque terme correspond au nombre de neurones sur la couche associee à ce terme"""
     def __init__(self,L):
+        self.coefA = 0.1
         self.couches = [couche(L[0],0)]#liste contenant les couches (des objets)
         for i in range(1,len(L)): #Ne pas deborder dans la ligne suivante
             self.couches.append(couche(L[i],L[i-1])) #creation de chaque couche du reseau
+ 
+    def setCoefA(self,x):
+        self.coefA = x
  
     def calcul(self,X): #calcule la sortie en fonction de l'entree
         for j in range(len(X)):
@@ -115,10 +119,10 @@ class reseauNeuronal():
         self.transfert(i+1,n)#recursivite pour transferer les donnees de la premiere couche à la derniere
  
     def cout(self,X,Y):
-        self.cout = 0
+        self.C = 0
         calcul(self,X)
         for i in range(len(self.couches[-1].neurones)):
-            self.cout += (self.couches[-1].neurones[i]-elu(Y[i]))**2
+            self.C += (self.couches[-1].neurones[i]-elu(Y[i]))**2
 
     def calcErreur(self,theor):
         Y = self.couches[-1].neurones #Couche de sortie/reponse
@@ -131,12 +135,12 @@ class reseauNeuronal():
         for k in range(1,len(self.couches)):
             for i in range(len(self.couches[k].poids)):
                 for j in range(len(self.couches[k].poids[i])):
-                    self.couches[k].poids[i][j] -= self.erreur[k][i]*0.05*self.couches[k-1].neurones[j]
+                    self.couches[k].poids[i][j] -= self.erreur[k][i]*self.coefA*self.couches[k-1].neurones[j]
 
     def modifBiais(self):
         for i in range(1,len(self.couches)):
             for j in range(len(self.couches[i].neurones)):
-                self.couches[i].biais[j] -= self.erreur[i][j]*0.05
+                self.couches[i].biais[j] -= self.erreur[i][j]*self.coefA
 
     def entrainer(self,baseE,baseT,nbr):
         n = len(baseE)
@@ -179,9 +183,11 @@ donneesTest = [(imgEnNombres(donneesTest[i]),sorties[donneesTestNoms[i].split("_
 
 reconnaisseur = reseauNeuronal([len(donneesEntrainement[0][0]),int((len(donneesEntrainement[0][0])+len(especes))/2),len(especes)])
 
+n = 10
+p = 100
+T = [p*i for i in range(n+1)]
 A=[0]
-T = [100*i for i in range(31)]
-for a in range(30):
-    A.append(reconnaisseur.entrainer(donneesEntrainement,donneesEntrainement,100))
+for a in range(n):
+    A.append(reconnaisseur.entrainer(donneesEntrainement,donneesEntrainement,p))
 plt.plot(T,A)
 plt.show()
