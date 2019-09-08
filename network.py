@@ -5,6 +5,7 @@
 from random import random,randint
 import numpy as np
 import matplotlib.image as img
+import matplotlib.pyplot as plt
 import os
 import glob #gestion de fichier
 
@@ -47,13 +48,13 @@ def retourner(L):
     return L[::-1]
 
 def normaliser(L):
-    return [np.floor(X/max(L)) for X in L]
+    return [X == max(L) for X in L]
 
 ###Reseau de neurones  
 def elu(x):
     """bijection de R dans ]-1,+inf[, continue, derivable strictement croissante"""
     if x <0:
-       return np.exp(x)-1
+        return np.exp(x)-1
     return x
   
 def dElu(x):
@@ -64,7 +65,7 @@ def dElu(x):
 
 def invElu(x):
     if x<0:
-       return np.log(x+1)
+        return np.log(x+1)
     return x
 
 ###Traitement d'images
@@ -72,14 +73,14 @@ def pixelValue(pix):
     '''Entree: Un tableau de trois valeurs representant un pixel
         Sortie: Ces trois valeurs concatenees.
     '''
-    return ('00'+str(pix[0]))[-3::] + ('00'+str(pix[1]))[-3::] + ('00'+str(pix[2]))[-3::]
+    return ('00'+str(pix[0]))[-3::] #+ ('00'+str(pix[1]))[-3::] + ('00'+str(pix[2]))[-3::]
 
 def imgEnNombres(image):
     '''Entree: Une image de taille nxp sous la forme d'un array numpy contenant les valeurs RGB de chaque pixel
         Sortie: Une liste de même taille que le nombre de pixels de l'image contenant des valeurs representant les pixels''' 
     n= len(image)
     p= len(image[0])
-    return [int(pixelValue(image[i//p][i%p])) for i in range(n*p)]
+    return [int(pixelValue(image[i//p][i%p]))/255 for i in range(n*p)]
 
 ########
 #Classes
@@ -121,7 +122,7 @@ class reseauNeuronal():
 
     def calcErreur(self,theor):
         Y = self.couches[-1].neurones #Couche de sortie/reponse
-        self.erreur = [[dElu(invElu(self.couches[-1].neurones[i]))*(Y[i] - theor[i]) for i in range(len(Y))]]#La liste accueillant erreurs du cout par rapport à chaque poids de la derniere couche
+        self.erreur = [[dElu(invElu(Y[i]))*(Y[i] - theor[i]) for i in range(len(Y))]]#La liste accueillant erreurs du cout par rapport à chaque poids de la derniere couche
         for k in range(len(self.couches)-1): #Pour chaque couche du reseau moins la derniere (deja effectuee)
             self.erreur.append([dElu(invElu(self.couches[-1-k-1].neurones[i]))*sommeListe(produitListes([X[i] for X in self.couches[-1-k].poids],self.erreur[-1])) for i in range(len(self.couches[-1-k-1].neurones))])
         self.erreur = retourner(self.erreur)
@@ -137,14 +138,21 @@ class reseauNeuronal():
             for j in range(len(self.couches[i].neurones)):
                 self.couches[i].biais[j] -= self.erreur[i][j]*0.05
 
-    def entrainer(self,base,nbr):
-        n = len(base)
+    def entrainer(self,baseE,baseT,nbr):
+        n = len(baseE)
+        m = len(baseT)
+        compteur = 0
         for i in range(nbr):
-            entree = randint(0,n-1)
-            self.calcul(base[entree][0] )
-            self.calcErreur(base[entree][1])
-            self.modifPoids()
-            self.modifBiais()
+            for j in range(n):
+                self.calcul(baseE[j][0])
+                self.calcErreur(baseE[j][1])
+                self.modifPoids()
+                self.modifBiais()
+        for j in range(n):
+            self.calcul(baseT[j][0])
+            if baseT[j][1] == normaliser(self.couches[-1].neurones):
+                compteur += 1
+        return np.floor(100*compteur/m)
 
 
 #####
@@ -156,18 +164,24 @@ os.chdir(".\TrainDB")
 donneesEntrainementNoms = glob.glob("*.png")
 especes = enleverDoublons([name.split("_")[0] for name in donneesEntrainementNoms])
 
-donneesEntrainement = np.array([np.floor(img.imread(donneesEntrainementNoms[i])*255).astype(np.uint8) for i in range(len(donneesEntrainementNoms))])
-donneesEntrainement = [(imgEnNombres(donneesEntrainement[i]),donneesEntrainementNoms[i].split("_")[0]) for i in range(len(donneesEntrainement))]
+sorties = [(especes[i],[1*(i==j) for j in range(len(especes))]) for i in range(len(especes))]
+sorties = dict(sorties)
+
+donneesEntrainement = [np.floor(img.imread(donneesEntrainementNoms[i])*255).astype(np.uint8) for i in range(len(donneesEntrainementNoms))]
+donneesEntrainement = [(imgEnNombres(donneesEntrainement[i]),sorties[donneesEntrainementNoms[i].split("_")[0]]) for i in range(len(donneesEntrainement))]
 
 
 ###obtention des donnees de test
 os.chdir("..\TestDB")
 donneesTestNoms = glob.glob("*.png")
-donneesTest = np.array([np.floor(img.imread(donneesTestNoms[i])*255).astype(np.uint8) for i in range(len(donneesTestNoms))])
-donneesTest = [(imgEnNombres(donneesTest[i]),donneesTestNoms[i].split("_")[0] ) for i in range(len(donneesTest))]
+donneesTest = [np.floor(img.imread(donneesTestNoms[i])*255).astype(np.uint8) for i in range(len(donneesTestNoms))]
+donneesTest = [(imgEnNombres(donneesTest[i]),sorties[donneesTestNoms[i].split("_")[0]]) for i in range(len(donneesTest))]
 
-###Sorties theoriques à partir du nom de l'espèce
-sorties = [(especes[i],[1*(i==j) for j in range(len(especes))]) for i in range(len(especes))]
-sorties = dict(sorties)
+reconnaisseur = reseauNeuronal([len(donneesEntrainement[0][0]),int((len(donneesEntrainement[0][0])+len(especes))/2),len(especes)])
 
-reconnaisseur = reseauNeuronal([25,20,15,10,len(especes)])
+A=[0]
+T = [100*i for i in range(31)]
+for a in range(30):
+    A.append(reconnaisseur.entrainer(donneesEntrainement,donneesEntrainement,100))
+plt.plot(T,A)
+plt.show()
