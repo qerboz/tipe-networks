@@ -186,8 +186,13 @@ reconnaisseur = reseauNeuronal([len(donneesEntrainement[0][0]),int((len(donneesE
 n = 10
 p = 100
 T = [p*i for i in range(n+1)]
-A=[0]
-for a in range(n):
-    A.append(reconnaisseur.entrainer(donneesEntrainement,donneesEntrainement,p))
-plt.plot(T,A)
+c = 0.1
+for b in range(7):
+    A = [0]
+    reconnaisseur.setCoefA(c)
+    for a in range(n):
+        A.append(reconnaisseur.entrainer(donneesEntrainement,donneesEntrainement,p))
+    plt.plot(T,A, label = int(c*10)/10)
+    c += 0.2
+plt.legend(loc = 'upper left')
 plt.show()
