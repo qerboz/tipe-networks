@@ -101,7 +101,7 @@ class reseauNeuronal():
         for i in range(1,len(L)): #Ne pas deborder dans la ligne suivante
             self.couches.append(couche(L[i],L[i-1])) #creation de chaque couche du reseau
  
-    def setCoefA(self,x):
+    def reglerCoefA(self,x):
         self.coefA = x
  
     def calcul(self,X): #calcule la sortie en fonction de l'entree
@@ -189,7 +189,7 @@ T = [p*i for i in range(n+1)]
 c = 0.1
 for b in range(7):
     A = [0]
-    reconnaisseur.setCoefA(c)
+    reconnaisseur.reglerCoefA(c)
     for a in range(n):
         A.append(reconnaisseur.entrainer(donneesEntrainement,donneesEntrainement,p))
     plt.plot(T,A, label = int(c*10)/10)
