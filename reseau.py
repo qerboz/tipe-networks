@@ -3,155 +3,123 @@
 ########
 
 import numpy as np
-import matplotlib.image as img
-import matplotlib.pyplot as plt
-import os
-import glob #gestion de fichier
+import random
 
 #######################
 #Fonctions d'activation
 #######################
 
-def elu(x):
-    """bijection de R dans ]-1,+inf[, continue, derivable strictement croissante"""
-    return np.exp(x)-1 if x<0 else x
-v_elu = np.vectorize(elu)
+class sigmoide():
+    @staticmethod
+    @np.vectorize
+    def fonction(x):
+        """bijection de R dans ]0,1[, continue, derivable strictement croissante"""
+        return 1/(1+np.exp(-x))
 
-def delu(x):
-    """derivee de la fonction elu
-       Entree : x = elu(y) ; Sortie : elu'(y) en fonction de x = elu(y)"""
-    return min(x,0)+1
-v_delu = np.vectorize(delu)
+    @staticmethod
+    @np.vectorize
+    def derivee(x):
+        """derivee de la fonction sigmoide
+        Entree : x = sig(y) ; Sortie : sig'(y) en fonction de x = sig(y)"""
+        return x*(1-x)
 
-def sig(x):
-    """bijection de R dans ]0,1[, continue, derivable strictement croissante"""
-    return 1/(1+np.exp(-x))
-v_sig = np.vectorize(sig)
+class elu():
+    @staticmethod
+    @np.vectorize
+    def fonction(x):
+        """bijection de R dans ]-1,+inf[, continue, derivable strictement croissante"""
+        return np.exp(x)-1 if x<0 else x
 
-def dsig(x):
-    """derivee de la fonction sigmoide
-       Entree : x = sig(y) ; Sortie : sig'(y) en fonction de x = sig(y)"""
-    return x*(1-x)
-v_dsig = np.vectorize(dsig)
+    @staticmethod
+    @np.vectorize
+    def derivee(x):
+        """derivee de la fonction elu
+        Entree : x = elu(y) ; Sortie : elu'(y) en fonction de x = elu(y)"""
+        return min(x,0)+1
+
+######
+#Couts
+######
+
+class coutQuad():
+    @staticmethod
+    def fonction(x):
+        return sigmoide.fonction(x) 
+    @staticmethod
+    def cout(x,y):
+        return (1/2)*(x-y)**2
+    @staticmethod
+    def derivee(x,y):
+        return x-y
+
+class coutCroise():
+    @staticmethod
+    def fonction(x):
+        return sigmoide.fonction(x)
+    @staticmethod
+    def cout(x,y):
+        return y*np.log(x)+(1-y)*np.log(1-x)
+    @staticmethod
+    def derivee(x,y):
+        return x-y
 
 ###################
-#Fonctions diverses
+#Reseau de neurones
 ###################
-
-def lectImg(nom):
-    Img = img.imread(nom)
-    if Img.shape[2] > 3:
-        Img = Img[:,:,0:3]
-    Img = np.reshape(Img,(-1,1))
-    return Img
-
-def normaliser(L):
-    if L.shape == (1,1):
-        sortie = np.array([1*(L[0,0] > 0.5)])
-    else:
-        sortie = np.array([1*(X == np.amax(L)) for X in L])
-    sortie.shape = (-1,1)
-    return sortie
-
-########
-#Classes
-########
-
-class couche():
-    def __init__(self,n,p):
-        '''Entree : nb de neurones sur cette couche, et sur celle d'avant'''
-        self.neurones = np.zeros((n,1))
-        self.poids = np.random.random((n,p))*2-1
-        self.biais = np.zeros((n,1))
 
 class reseauNeuronal():
-    def __init__(self,structure,c = 0.1, f = elu):
+    def __init__(self,structure,c = 0.1, f = elu, cout = coutQuad):
         self.reglageCoefA(c) #coef d'apprentissage par défaut
-        self.reglageFoncAct(f) #fonction d'activation par défaut
-        self.couches = [couche(structure[0],0)]#liste contenant les couches (des objets)
-        for i in range(1,len(structure)): #Ne pas deborder dans la ligne suivante
-            self.couches.append(couche(structure[i],structure[i-1]))
-            
-    def reglageFoncAct(self,f):
-        self.foncAct = globals()['v_' + f.__name__]
-        self.dFoncAct = globals()['v_d' + f.__name__]
-        
+        self.foncAct = f
+        self.poids = [np.random.randn(n,p)/np.sqrt(p) for n,p in zip(structure[1:],structure[:-1])]
+        self.biais = [np.random.randn(n,1) for n in structure[1:]]
+        self.cout = cout
+
     def reglageCoefA(self,x):
         self.coefA = x
     
     def calcul(self,entree):
-        entree = np.asarray(entree) #entree sous forme d'array
-        entree.shape = (-1,1) #entree sous forme de colonne
-        self.couches[0].neurones = self.foncAct(entree) #insertion des valeurs d'entree dans les premiers neurones
-        for i in range(1,len(self.couches)):
-            #print(self.couches[i].poids.shape,self.couches[i-1].neurones.shape,self.couches[i].biais.shape)
-            #valeurs print("poids",self.couches[i].poids,"neur",self.couches[i-1].neurones,"biais",self.couches[i].biais)
-            self.couches[i].neurones = self.foncAct(np.dot(self.couches[i].poids,self.couches[i-1].neurones) + self.couches[i].biais)
+        self.neurones = [self.foncAct.fonction(entree)] #insertion des valeurs d'entree dans les premiers neurones
+        for p,b in zip(self.poids,self.biais):
+            self.neurones.append(self.foncAct.fonction(np.dot(p,self.neurones[-1])+b))
         
     def calcErr(self,valTheor):
-        valTheor = np.asarray(valTheor) #entree sous forme d'array
-        valTheor.shape = (-1,1) #entree sous forme de colonne
-        valExp = self.couches[-1].neurones #recuperation des valeurs de sortie calculees
-        self.erreur = [self.dFoncAct(valExp)*(valExp-valTheor)]
-        for c in range(len(self.couches)-1):
-            self.erreur.append(self.dFoncAct(self.couches[-2-c].neurones)*np.dot(self.couches[-1-c].poids.transpose(),self.erreur[-1])) #e^(n-1) = f'(x^(n-1)).((W^T)*e^(n))
-        self.erreur = self.erreur[::-1]
+        valExp = self.neurones[-1] #recuperation des valeurs de sortie calculees
+        erreur = [valExp*self.cout.derivee(valExp,valTheor)]
+        for p,n in zip(self.poids[::-1],self.neurones[:-1:-1]):
+            erreur.append(self.foncAct.fonction(n)*np.dot(p.transpose(),erreur[-1])) #e^(n-1) = f'(x^(n-1)).((P^T)*e^(n))
+        erreur = erreur[::-1]
+        erreurPoids=[]
+        erreurBiais=[]
+        for n,e in zip(self.neurones[:-1],erreur):
+            erreurPoids.append(np.sum(np.dot(e,n.transpose()),1).reshape(-1,1)/valTheor.shape[1])
+            erreurBiais.append(np.sum(e,1).reshape(-1,1)/valTheor.shape[1])
+        return erreurPoids,erreurBiais
         
-    def modifPoids(self):
-        for c in range(1,len(self.couches)): #pas de poids sur la premiere couche
-            self.couches[c].poids = self.couches[c].poids - self.coefA*np.dot(self.erreur[c],self.couches[c-1].neurones.transpose())
+    def modifPoids(self,var):
+        for p,n,v in zip(self.poids,self.neurones[-1],var): #pas de poids sur la premiere couche
+            p = 0,95*p - self.coefA*v
                         
-    def modifBiais(self):
-        for c in range(len(self.couches)):
-            self.couches[c].biais = self.couches[c].biais - self.coefA*self.erreur[c]
+    def modifBiais(self,var):
+        for b,v in zip(self.biais,var):
+            b = b - self.coefA*v
             
-    def entrainer(self,baseE,baseT,n):
-        e = len(baseE)
-        t = len(baseT)
-        nbSucces = 0
-        for i in range(n):
-            for j in range(e):
-                self.calcul(baseE[j][0])
-                self.calcErr(baseE[j][1])
-                self.modifPoids()
-                self.modifBiais()
-        for j in range(t):
-            self.calcul(baseT[j][0])
-            if np.array_equal(np.asarray(baseT[j][1]),normaliser(self.couches[-1].neurones)):
-                nbSucces += 1
-        return np.floor(100*nbSucces/t)
-        
-#####
-#Main
-#####
-
-##Obtention des especes
-os.chdir(".\TrainDB")
-donneesEntrainementNoms = glob.glob("*.png")
-especes = np.unique(np.array([name.split('_')[0] for name in donneesEntrainementNoms]))
-sorties = [(especes[i],np.array([1*(i==j) for j in range(len(especes))])) for i in range(len(especes))]
-for X in sorties:
-    X[1].shape = (-1,1)
-sorties = dict(sorties)
-
-##Obtention des donnees d'entrainement
-donneesEntrainement = [(lectImg(X),sorties[X.split('_')[0]]) for X in donneesEntrainementNoms]
-
-##Obtention des donnees de test
-os.chdir("..\TestDB")
-donneesTestNoms = glob.glob("*.png")
-donneesTest = [(lectImg(X),sorties[X.split('_')[0]]) for X in donneesTestNoms]
-
-##Test
-reconnaisseur = reseauNeuronal([75,40,40,15,6],0.1,sig)
-
-n = 10
-p = 250
-T = [p*i for i in range(n+1)]
-A = [0]
-for a in range(n):
-    A.append(reconnaisseur.entrainer(donneesEntrainement,donneesTest,p))
-plt.plot(T,A) #, label = int(c*10)/10)
-#plt.legend(loc = 'upper left')
-plt.show()
-
+    def entrainer(self,baseE,baseT,nbrEntrainements,tailleBatch = 1):
+        self.t = tailleBatch
+        for i in range(nbrEntrainements):
+            random.shuffle(baseE)
+            paquetsEntrainement = [baseE[k:k+tailleBatch] for k in range(0, len(baseE), tailleBatch)]
+            for paquet in paquetsEntrainement:
+                entree = np.concatenate(list(zip(*paquet))[0],1)
+                self.calcul(entree)
+                erreurPoids,erreurBiais = self.calcErr(entree)
+                self.modifPoids(erreurPoids)
+                self.modifBiais(erreurBiais)
+                
+xor = reseauNeuronal([2,2,1])
+L = [[np.array([[1],[0]]),np.array([[1]])],[np.array([[0],[0]]),np.array([[0]])],[np.array([[0],[1]]),np.array([[1]])],[np.array([[1],[1]]),np.array([[0]])]]
+xor.entrainer(L,L,1000,2)
+xor.calcul(L[0][0])
+print("1,0 :",xor.neurones[-1])
+xor.calcul(L[1][0])
+print("0,0 :",xor.neurones[-1])
