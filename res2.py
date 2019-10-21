@@ -68,48 +68,58 @@ class coutCroise():
 ###################
 
 class reseauNeuronal():
-    def __init__(self,structure,c = 0.1, f = elu, tailleBatch = 1, cout = coutQuad):
+    def __init__(self,structure,c = 0.1, f = elu, cout = coutQuad):
         self.reglageCoefA(c) #coef d'apprentissage par défaut
         self.foncAct = f
         self.poids = [np.random.randn(n,p)/np.sqrt(p) for n,p in zip(structure[1:],structure[:-1])]
         self.biais = [np.random.randn(n,1) for n in structure[1:]]
-        self.t = tailleBatch
         self.cout = cout
 
     def reglageCoefA(self,x):
         self.coefA = x
     
     def calcul(self,entree):
-        entree = np.asarray(entree) #entree sous forme d'array
-        entree.shape = (-1,self.t) #entree sous forme de matrice
         self.neurones = [self.foncAct.fonction(entree)] #insertion des valeurs d'entree dans les premiers neurones
         for p,b in zip(self.poids,self.biais):
             self.neurones.append(self.foncAct.fonction(np.dot(p,self.neurones[-1])+b))
         
     def calcErr(self,valTheor):
-        valTheor = np.asarray(valTheor) #entree sous forme d'array
-        valTheor.shape = (-1,self.t) #entree sous forme de matrice
         valExp = self.neurones[-1] #recuperation des valeurs de sortie calculees
-        erreur = [self.foncAct.fonction(valExp)*self.cout.derivee(valExp,valTheor)]
-        for p,n in zip(self.poids,self.neurones[:-1]):
+        erreur = [valExp*self.cout.derivee(valExp,valTheor)]
+        for p,n in zip(self.poids[::-1],self.neurones[:-1:-1]):
             erreur.append(self.foncAct.fonction(n)*np.dot(p.transpose(),erreur[-1])) #e^(n-1) = f'(x^(n-1)).((P^T)*e^(n))
-        return erreur[::-1]
+        erreur = erreur[::-1]
+        erreurPoids=[]
+        erreurBiais=[]
+        for n,e in zip(self.neurones[:-1],erreur):
+            erreurPoids.append(np.sum(np.dot(e,n.transpose()),1).reshape(-1,1)/valTheor.shape[1])
+            erreurBiais.append(np.sum(e,1).reshape(-1,1)/valTheor.shape[1])
+        return erreurPoids,erreurBiais
         
     def modifPoids(self,var):
         for p,n,v in zip(self.poids,self.neurones[-1],var): #pas de poids sur la premiere couche
-            p = p - self.coefA*np.dot(v,n.transpose())
+            p = 0,95*p - self.coefA*v
                         
     def modifBiais(self,var):
         for b,v in zip(self.biais,var):
             b = b - self.coefA*v
             
-    def entrainer(self,baseE,baseT,tailleBatch = self.t,nbrEntrainements):
+    def entrainer(self,baseE,baseT,nbrEntrainements,tailleBatch = 1):
         self.t = tailleBatch
         for i in range(nbrEntrainements):
             random.shuffle(baseE)
-            paquetsEntrainement = [baseE[k:k+self.t] for k in range(0, len(baseE), self.t)]
+            paquetsEntrainement = [baseE[k:k+tailleBatch] for k in range(0, len(baseE), tailleBatch)]
             for paquet in paquetsEntrainement:
-                calcul(paquet[:][0])
-                erreur = calcErr(paquet[:][1])
-                modifPoids(erreur)
-                modifBiais(erreur)
+                entree = np.concatenate(list(zip(*paquet))[0],1)
+                self.calcul(entree)
+                erreurPoids,erreurBiais = self.calcErr(entree)
+                self.modifPoids(erreurPoids)
+                self.modifBiais(erreurBiais)
+                
+xor = reseauNeuronal([2,2,1])
+L = [[np.array([[1],[0]]),np.array([[1]])],[np.array([[0],[0]]),np.array([[0]])],[np.array([[0],[1]]),np.array([[1]])],[np.array([[1],[1]]),np.array([[0]])]]
+xor.entrainer(L,L,1000,2)
+xor.calcul(L[0][0])
+print("1,0 :",xor.neurones[-1])
+xor.calcul(L[1][0])
+print("0,0 :",xor.neurones[-1])
