@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import os
 import glob #gestion de fichier
 import random
-from scipy.misc import ascent
 
 ###################
 #Fonctions diverses
@@ -32,15 +31,30 @@ def normaliser(L):
 def convolution(X,Y):
     return np.sum(X*Y)
 
-def reduction(entree,coefRed):
-    m,n,p = entree.shape
-    sortie = np.zeros((m//coefRed,n//coefRed,entree.shape[2]))
+def conv2D(entree,masque):
+    try :
+        m,n,p = entree.shape
+    except:
+        m,n = entree.shape[:2]
+        p = 1
+        entree = np.reshape(entree,(m,n,p))
+    t = masque.shape[0]
+    sortie = np.zeros((m-t+1,n-t+1,p))
     for k in range(p):
         X = entree[:,:,k]
-        for i in range(0,m-coefRed+1,coefRed):
-            for j in range(0,n-coefRed+1,coefRed):
-                extract = X[i:i+coefRed,j:j+coefRed]
-                sortie[i//coefRed,j//coefRed,k] = np.max(extract)
+        for i in range(0,m-t+1):
+            for j in range(0,n-t+1):
+                extract = X[i:i+t,j:j+t]
+                sortie[i,j,k] = convolution(extract,masque)
+    return sortie
+
+def reduction(entree,coefRed):
+    m,n,p = entree.shape
+    sortie = np.zeros((m//coefRed,n//coefRed,p))
+    for i in range(0,m-coefRed+1,coefRed):
+        for j in range(0,n-coefRed+1,coefRed):
+            extract = X[i:i+coefRed,j:j+coefRed,:]
+            sortie[i//coefRed,j//coefRed,k] = np.max(extract)
     return sortie
 
 #######################
@@ -105,9 +119,16 @@ class coutCroise():
 
 class reseauNeuronal():
     def __init__(self,structureC, structureP,f = elu,c = 0.1,cout = coutQuad):
+        '''Fonction qui crée le réseau
+           Entree : liste de couples d'entiers indiquant le nombre et la taille des masques pour les couches de convolution et de pooling (alternance 1/2)
+                    liste d'entiers indiquant la taille des couches du réseau perceptrons multicouches
+                    fonction d'activation
+                    coefficient d'apprentissage
+                    cout'''
         self.reglageCoefA(c) #coef d'apprentissage par defaut
         self.foncAct = f
-        self.filtres =[[np.random.random((n,n))*2-1 for n in couche] for couche in structureC]
+        self.filtres =[[np.random.random((n,n))*2-1 for n in couche] for couche in structureC[::2]]
+        self.coefsRed = structureC[::2]
         self.poids = [np.random.random((n,p))*2-1 for n,p in zip(structure[1:],structure[:-1])]
         self.biais = [np.zeros((n,1)) for n in structure[1:]]
         #self.poids = [np.array([[[1]*p]*n]).reshape(n,p) for n,p in zip(structure[1:],structure[:-1])]
@@ -117,6 +138,8 @@ class reseauNeuronal():
         self.coefA = x
                 
     def calcul(self,entree):
+        self.img = [self.foncAct.fonction(entree)]
+        for filtre,coef in zip(self.filtres,self.coefsRed):
         self.neurones = [self.foncAct.fonction(entree)] #insertion des valeurs d'entree dans les premiers neurones
         for p,b in zip(self.poids[:-1],self.biais[:-1]):
             self.neurones.append(self.foncAct.fonction(np.dot(p,self.neurones[-1])+b))
