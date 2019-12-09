@@ -5,7 +5,8 @@ import os
 import glob #gestion de fichier
 import random
 from scipy.misc import face
-flou = np.array([[[0,1,0],[1,-4,1],[0,1,0]],[[0,1,0],[1,-4,1],[0,1,0]],[[0,1,0],[1,-4,1],[0,1,0]]])
+
+flou = np.array([[[1,1,1],[1,1,1],[1,1,1]]]).reshape(3,3,1)
 ###################
 #Fonctions diverses
 ###################
@@ -42,7 +43,7 @@ def conv3D(entree,masque):
     m,n,p = entree.shape
     r,s,t = masque.shape
     sortie = np.zeros((m-r+1,n-s+1,p-t+1))
-    for i in range(0,m-t+1):
+    for i in range(0,m-r+1):
         for j in range(0,n-s+1):
             for k in range(0, p-t+1):
                 extract = entree[i:i+r,j:j+s,k:k+t]
@@ -53,7 +54,7 @@ def reduction(entree,masque):
     m,n,p = entree.shape
     r,s,t = masque.shape
     sortie = np.zeros((m-r+1,n-s+1,p-t+1))
-    for i in range(0,m-t+1):
+    for i in range(0,m-r+1):
         for j in range(0,n-s+1):
             for k in range(0, p-t+1):
                 sortie[i,j,k] = np.max(entree[i:i+r,j:j+s,k:k+t])
@@ -72,6 +73,12 @@ class CNN():
         self.cout = cout
                  
     #def calcul(self):
+    
+plt.subplot(2,1,1)
+plt.imshow(face())
+plt.subplot(2,1,2)
+plt.imshow(conv3D(face(),flou))
+plt.show()
         
         
 
