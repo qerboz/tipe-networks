@@ -6,7 +6,12 @@ import glob #gestion de fichier
 import random
 from scipy.misc import face,ascent
 
-flou = np.array([[1,1,1],[0,0,0],[-1,-1,-1]]).reshape(3,3,1)
+flou = np.array([[0,-1,0],[-1,4,-1],[0,-1,0]]).reshape(3,3,1)
+
+im = img.imread("./fish_04/fish_000000019599_07753.png")
+print(im.shape)
+im = im[:im.shape[0],:im.shape[1],:im.shape[2]]
+
 ###################
 #Fonctions diverses
 ###################
@@ -52,17 +57,16 @@ def conv3D(entree,masque):
         for j in range(0,n-s+1):
             for k in range(0, p-t+1):
                 extract = entree[i:i+r,j:j+s,k:k+t]
-                sortie[i,j,k] = convolution(extract,masque)/255
+                sortie[i,j,k] = convolution(extract,masque)
     return sortie
 
-def reduction(entree,masque):
+def reduction(entree,r,s,t):
     m,n,p = entree.shape
-    r,s,t = masque.shape
-    sortie = np.zeros((m-r+1,n-s+1,p-t+1))
-    for i in range(0,m-r+1):
-        for j in range(0,n-s+1):
-            for k in range(0, p-t+1):
-                sortie[i,j,k] = np.max(entree[i:i+r,j:j+s,k:k+t])
+    sortie = np.zeros((m//r,n//s,p//t))
+    for i in range(0,m-r,r):
+        for j in range(0,n-s,s):
+            for k in range(0, p-t,t):
+                sortie[i//r,j//s,k//t] = np.max(entree[i:i+r,j:j+s,k:k+t])
     return sortie
 
 ########
@@ -84,9 +88,11 @@ class CNN():
 # plt.subplot(1,4,2)
 # plt.imshow(conv3D(ascent(),flou))
 plt.subplot(1,2,1)
-plt.imshow(face())
+plt.imshow(im)
 plt.subplot(1,2,2)
-plt.imshow(conv3D(face(),flou))
+treated = reduction(conv3D(im,flou),2,2,1)
+print(conv3D(im,flou).shape,treated.shape)
+plt.imshow(treated,interpolation = "none")
 plt.show()
         
         
