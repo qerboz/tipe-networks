@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import os
 import glob #gestion de fichier
 import random
-from scipy.misc import face
+from scipy.misc import face,ascent
 
-flou = np.array([[[1,1,1],[1,1,1],[1,1,1]]]).reshape(3,3,1)
+flou = np.array([[1,1,1],[0,0,0],[-1,-1,-1]]).reshape(3,3,1)
 ###################
 #Fonctions diverses
 ###################
@@ -40,14 +40,19 @@ def convolution(X,Y):
     return np.sum(X*Y)
     
 def conv3D(entree,masque):
-    m,n,p = entree.shape
+    try :
+        m,n,p = entree.shape
+    except :
+        m,n = entree.shape
+        p=1
+        entree = entree.reshape(m,n,p)
     r,s,t = masque.shape
     sortie = np.zeros((m-r+1,n-s+1,p-t+1))
     for i in range(0,m-r+1):
         for j in range(0,n-s+1):
             for k in range(0, p-t+1):
                 extract = entree[i:i+r,j:j+s,k:k+t]
-                sortie[i,j,k] = convolution(extract,masque)
+                sortie[i,j,k] = convolution(extract,masque)/255
     return sortie
 
 def reduction(entree,masque):
@@ -73,10 +78,14 @@ class CNN():
         self.cout = cout
                  
     #def calcul(self):
-    
-plt.subplot(2,1,1)
+# a,b = ascent().shape
+# plt.subplot(1,4,1)
+# plt.imshow(ascent())
+# plt.subplot(1,4,2)
+# plt.imshow(conv3D(ascent(),flou))
+plt.subplot(1,2,1)
 plt.imshow(face())
-plt.subplot(2,1,2)
+plt.subplot(1,2,2)
 plt.imshow(conv3D(face(),flou))
 plt.show()
         
