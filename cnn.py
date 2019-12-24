@@ -8,23 +8,13 @@ from scipy.misc import face,ascent
 
 flou = np.array([[0,-1,0],[-1,4,-1],[0,-1,0]]).reshape(3,3,1)
 
-im = img.imread("./fish_04/fish_000000019599_07753.png")
-print(im.shape)
-im = im[:im.shape[0],:im.shape[1],:im.shape[2]]
+os.chdir("TestDBP")
+im = img.imread("Blob_0.png")
+im = im.reshape(im.shape[0],im.shape[1],3)
 
 ###################
 #Fonctions diverses
 ###################
-class coutQuad():
-    @staticmethod
-    def fonction(x):
-        return sigmoide.fonction(x) 
-    @staticmethod
-    def cout(x,y):
-        return (1/2)*(x-y)**2
-    @staticmethod
-    def derivee(x,y):
-        return x-y
 
 def lectImg(nom):
     Img = img.imread(nom)
@@ -45,12 +35,7 @@ def convolution(X,Y):
     return np.sum(X*Y)
     
 def conv3D(entree,masque):
-    try :
-        m,n,p = entree.shape
-    except :
-        m,n = entree.shape
-        p=1
-        entree = entree.reshape(m,n,p)
+    m,n,p = entree.shape
     r,s,t = masque.shape
     sortie = np.zeros((m-r+1,n-s+1,p-t+1))
     for i in range(0,m-r+1):
@@ -60,40 +45,99 @@ def conv3D(entree,masque):
                 sortie[i,j,k] = convolution(extract,masque)
     return sortie
 
-def reduction(entree,r,s,t):
+def reduction(entree,filtre,liste):
     m,n,p = entree.shape
+    r,s,t = filtre
     sortie = np.zeros((m//r,n//s,p//t))
+    liste.append([])
     for i in range(0,m-r,r):
         for j in range(0,n-s,s):
             for k in range(0, p-t,t):
                 sortie[i//r,j//s,k//t] = np.max(entree[i:i+r,j:j+s,k:k+t])
+                coord = np.where(entree[i:i+r,j:j+s,k:k+t] == sortie[i//r,j//s,k//t])
+                liste[-1].append(list(zip(coord[0],coord[1])))
     return sortie
+
+#######################
+#Fonctions d'activation
+#######################
+
+class sigmoide():
+    @staticmethod
+    def fonction(x):
+        """bijection de R dans ]0,1[, continue, derivable strictement croissante"""
+        return 1/(1+np.exp(-x))
+
+    @staticmethod
+    def derivee(x):
+        """derivee de la fonction sigmoide
+        Entree : x = sig(y) ; Sortie : sig'(y) en fonction de x = sig(y)"""
+        return x*(1-x)
+
+class elu():
+    @staticmethod
+    @np.vectorize
+    def fonction(x):
+        """bijection de R dans ]-1,+inf[, continue, derivable strictement croissante"""
+        return np.exp(x)-1 if x<0 else x
+
+    @staticmethod
+    @np.vectorize
+    def derivee(x):
+        """derivee de la fonction elu
+        Entree : x = elu(y) ; Sortie : elu'(y) en fonction de x = elu(y)"""
+        return min(x,0)+1
+
+######
+#Couts
+######
+
+class coutQuad():
+    @staticmethod
+    def fonction(x):
+        return sigmoide.fonction(x) 
+    @staticmethod
+    def cout(x,y):
+        return (1/2)*(x-y)**2
+    @staticmethod
+    def derivee(x,y):
+        return x-y
+
+class coutCroise():
+    @staticmethod
+    def fonction(x):
+        return sigmoide.fonction(x)
+    @staticmethod
+    def cout(x,y):
+        return y*np.log(x)+(1-y)*np.log(1-x)
+    @staticmethod
+    def derivee(x,y):
+        return x-y
 
 ########
 #Classes
 ########
 
 class CNN():
-    def __init__(self, structure, f, c = 0.1, cout= coutQuad):
+    def __init__(self,structure,f,c = 0.1,cout = coutQuad):
         self.coefA = c
         self.foncAct = f
-        self.filtres = [[np.random.random( (x[1][0],x[1][1],x[1][2]) ) for i in range(x[0])] for x in structure]
-        self.pools = [ x[2] for x in structure] 
+        self.filtres = [[np.random.random(x[1]) for i in range(x[0])] for x in structure]
+        self.pools = [x[2] for x in structure]
         self.cout = cout
+        self.max = [[] for f in self.filtres]
                  
-    #def calcul(self):
-# a,b = ascent().shape
-# plt.subplot(1,4,1)
-# plt.imshow(ascent())
-# plt.subplot(1,4,2)
-# plt.imshow(conv3D(ascent(),flou))
-plt.subplot(1,2,1)
-plt.imshow(im)
-plt.subplot(1,2,2)
-treated = reduction(conv3D(im,flou),2,2,1)
-print(conv3D(im,flou).shape,treated.shape)
-plt.imshow(treated,interpolation = "none")
-plt.show()
-        
+    def calcul(self,entree):
+        self.neurones = [self.foncAct.fonction(entree)]
+        for listef,p,i in zip(self.filtres,self.pools,range(0,len(self.filtres))):
+            self.neurones.append(self.foncAct.fonction(reduction(conv3D(self.neurones[-1],listef[0]),p,self.max[i])))
+            for f in listef[1:]:
+                self.neurones[-1] = np.append(self.neurones[-1],self.foncAct.fonction(reduction(conv3D(self.neurones[-2],f),p,self.max[i])),axis = 2)
+
+    def calcErr(self,erreurSortie):
+        erreur = [erreurSortie]
         
 
+        
+test = CNN([(3,(3,3,1),(2,2,1))],sigmoide)
+test.calcul(im)
