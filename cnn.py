@@ -37,6 +37,7 @@ def convolution(X,Y):
 def conv3D(entree,masque):
     m,n,p = entree.shape
     r,s,t = masque.shape
+    print((m,n,p),(r,s,t))
     sortie = np.zeros((m-r+1,n-s+1,p-t+1))
     for i in range(0,m-r+1):
         for j in range(0,n-s+1):
@@ -47,26 +48,27 @@ def conv3D(entree,masque):
 
 def reduction(entree,filtre,liste):
     m,n,p = entree.shape
-    r,s = filtre[0],filtre[1]
-    a,b = m%r,n%s
-    if b != 0:
-        entree = np.concatenate((entree,np.zeros((m,r-b,p))),axis = 1)
-    n = entree.shape[1]
-    if a != 0 :
-        entree = np.concatenate((entree,np.zeros((r-a,n,p))),axis = 0)
-    m = entree.shape[0]
-    sortie = np.zeros((m//r,n//s,p))
-    sortieIndices = np.zeros((m//r,n//s,p,3))
-    for i in range(0,m-r+1,r):
-        for j in range(0,n-s+1,s):
+    r,s = filtre
+    sortie = np.zeros((m//r+np.sign(m%r),n//s+np.sign(n%s),p))
+    liste.append([])
+    for i in range(0,m-r,r):
+        for j in range(0,n-s,s):
             for k in range(0,p):
-                extrait = entree[i:i+r,j:j+s,k]
-                maxp = np.max(extrait)
-                sortie[i//r,j//s,k] = maxp
-                coord = np.where(entree[i:i+r,j:j+s,k] == maxp)
-                u,v = coord[0][0],coord[1][0]
-                sortieIndices[i//r,j//s,k] = (u+i,v+j,k)
-    liste.append(sortieIndices.astype(int))
+                sortie[i//r,j//s,k] = np.max(entree[i:i+r,j:j+s,k])
+                coord = np.where(entree[i:i+r,j:j+s,k] == sortie[i//r,j//s,k])
+                liste[-1].append(list(zip(i+coord[0]-1,j+coord[1]-1)))
+    if m%r != 0:
+        for j in range(0,n-s,s):
+            for k in range(0,p):
+                sortie[-1,j//s,k] = np.max(entree[r*(m//r)+1:,j:j+s,k])
+                coord = np.where(entree[r*(m//r)+1:,j:j+s,k] == sortie[-1,j//s,k])
+                liste[-1].append(list(zip(r*(m//r)+coord[0],j+coord[1]-1)))
+    if n%s != 0:
+        for i in range(0,m-r,r):
+            for k in range(0,p):
+                sortie[i//r,-1,k] = np.max(entree[i:i+r,s*(n//s)+1:,k])
+                coord = np.where(entree[i:i+r,s*(n//s)+1:,k] == sortie[i//r,-1,k])
+                liste[-1].append(list(zip(r*(m//r)+coord[0],j+coord[1]-1)))
     return sortie
 
 #######################
@@ -133,27 +135,24 @@ class CNN():
     def __init__(self,structure,f,c = 0.1,cout = coutQuad):
         self.coefA = c
         self.foncAct = f
-        self.filtres = [[np.random.random(x[1])*2-1 for i in range(x[0])] for x in structure]
+        self.filtres = [[np.random.random(x[1]) for i in range(x[0])] for x in structure]
         self.pools = [x[2] for x in structure]
         self.cout = cout
         self.max = [[] for f in self.filtres]
                  
     def calcul(self,entree):
         self.neurones = [self.foncAct.fonction(entree)]
-        for i in range(0,len(self.filtres)):
-            self.neurones.append(self.foncAct.fonction(reduction(conv3D(self.neurones[-1],self.filtres[i][0]),self.pools[i],self.max[i])))
-            for f in self.filtres[i][1:]:
-                self.neurones[-1] = np.append(self.neurones[-1],self.foncAct.fonction(reduction(conv3D(self.neurones[-2],f),self.pools[i],self.max[i])),axis = 2)
+        for listef,p,i in zip(self.filtres,self.pools,range(0,len(self.filtres))):
+            self.neurones.append(self.foncAct.fonction(reduction(conv3D(self.neurones[-1],listef[0]),p,self.max[i])))
+            #for f in listef[1:]:
+            #    self.neurones[-1] = np.append(self.neurones[-1],self.foncAct.fonction(reduction(conv3D(self.neurones[-2],f),p,self.max[i])),axis = 2)
 
     def calcErr(self,erreurSortie):
         erreur = [erreurSortie]
-        for i in range(1,len(self.filtres)):
+        for i in range(1,self.filtres):
             erreur.append(np.zeros((self.neurones[i].shape)))
             for j in range(len(self.filtres[i])):
                 f = self.filtres[i][j]
-                forme = f.shape
-                for k in range(len(erreur[-2])):
-                    for l in range(len(erreur[-2][0])):
-                        for m in range(len(erreur[-2][0,0])):
-                            (a,b,c) = tuple(self.max[i][j][k,l,m])
-                            erreur[-1][a:a+forme[0],b:b+forme[1],c:c+forme[2]] += erreur[-2][k,l,m]*f*self.foncAct.derivee(self.neurones[i][a:a+forme[0],b:b+forme[1],c:c+forme[2]])
+                a,b = f.shape
+                for (k,l) in self.max[i][j]:
+                    erreur[-1][k:k+a,l:l+b] += f*erreur[-2][k,l]
