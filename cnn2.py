@@ -20,6 +20,16 @@ def lectImg(nom):
         Img = Img[:,:,0:3]
     return Img
 
+def sauvegarde(reseau,fichier):
+    os.chdir('./'+fichier)
+    np.save('filtres.npy',reseau.filtres)
+    np.save('pools.npy',reseau.pools)
+
+def charger(reseau,fichier):
+    os.chdir('./'+fichier)
+    reseau.filtres = np.load('filtres.npy')
+    reseau.pools = np.load('pools.npy')
+
 def normaliser(L):
     if L.shape == (1,1):
         sortie = np.array([1*(L[0,0] > 0.5)])
