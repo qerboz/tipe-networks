@@ -146,6 +146,7 @@ class CNN():
         self.max = [[] for f in self.filtres]
                  
     def calcul(self,entree):
+        self.max = [[] for f in self.filtres]
         self.neurones = [self.foncAct.fonction(entree)]
         for i in range(0,len(self.filtres)):
             self.neurones.append(reduction(self.foncAct.fonction(conv3D(self.neurones[-1],self.filtres[i][0])),self.pools[i],self.max[i]))
