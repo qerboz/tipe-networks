@@ -140,7 +140,7 @@ class CNN():
     def __init__(self,structure,f,c = 0.1,cout = coutQuad):
         self.coefA = c
         self.foncAct = f
-        self.filtres = [[np.random.random(x[1])*2-1 for i in range(x[0])] for x in structure]
+        self.filtres = [[np.random.random(x[1])*2-1 for i in range(x[0])] for x in structure] #Init des coeffs entre -1 et 1
         self.pools = [x[2] for x in structure]
         self.cout = cout
         self.max = [[] for f in self.filtres]
@@ -149,7 +149,7 @@ class CNN():
         self.max = [[] for f in self.filtres]
         self.neurones = [self.foncAct.fonction(entree)]
         for i in range(0,len(self.filtres)):
-            self.neurones.append(reduction(self.foncAct.fonction(conv3D(self.neurones[-1],self.filtres[i][0])),self.pools[i],self.max[i]))
+            self.neurones.append(self.foncAct.fonction(reduction(conv3D(self.neurones[-1],self.filtres[i][0]),self.pools[i],self.max[i])))
             for f in self.filtres[i][1:]:
                 self.neurones[-1] = np.append(self.neurones[-1],self.foncAct.fonction(reduction(conv3D(self.neurones[-2],f),self.pools[i],self.max[i])),axis = 2)
 
@@ -163,7 +163,8 @@ class CNN():
                 for k in range(len(erreur[-2])):
                     for l in range(len(erreur[-2][0])):
                         (a,b,c) = tuple(self.max[-1-i][j][k,l,0])
-                        erreur[-1][a:a+forme[0],b:b+forme[1],c:c+forme[2]] += erreur[-2][k,l,j]*f*self.foncAct.derivee(self.neurones[-2-i][a:a+forme[0],b:b+forme[1],c:c+forme[2]])
+                        #erreur[-1][a:a+forme[0],b:b+forme[1],c:c+forme[2]] += erreur[-2][k,l,j]*f*self.foncAct.derivee(self.neurones[-2-i][a:a+forme[0],b:b+forme[1],c:c+forme[2]])
+                        erreur[-1][a:a+forme[0],b:b+forme[1],c:c+forme[2]] += erreur[-2][k,l,j]*f*self.foncAct.derivee(self.neurones[-1-i][k,l,j])
         erreur = erreur[::-1]
         erreurPoids = [[np.zeros(f.shape) for f in listef] for listef in self.filtres]
         for i in range(len(erreurPoids)):
@@ -287,7 +288,7 @@ class reseau():
         return score/len(baseT)
 
 ##Obtention des especes
-os.chdir("./TRAIN")
+os.chdir("/home/cmp1/vancauwenberghe.paul/vancauwenberghe.paul/Travail/TIPE/TRAIN")
 donneesEntrainementNoms = glob.glob("*.png")
 especes = np.unique(np.array([name.split('_')[0] for name in donneesEntrainementNoms]))
 sorties = [(especes[i],np.array([1*(i==j) for j in range(len(especes))])) for i in range(len(especes))]
@@ -299,7 +300,7 @@ sorties = dict(sorties)
 donneesEntrainement = [(lectImg(X),sorties[X.split('_')[0]]) for X in donneesEntrainementNoms]
 
 ##Obtention des donnees de test
-os.chdir("../TEST")
+os.chdir("/home/cmp1/vancauwenberghe.paul/vancauwenberghe.paul/Travail/TIPE/TEST")
 donneesTestNoms = glob.glob("*.png")
 donneesTest = [(lectImg(X),sorties[X.split('_')[0]]) for X in donneesTestNoms]
 
@@ -307,7 +308,7 @@ donneesTest = [(lectImg(X),sorties[X.split('_')[0]]) for X in donneesTestNoms]
 t = time.time()
 reconnaisseur = reseau(CNN([[10,(5,5,3),(2,2)],[10,(3,3,10),(2,2)],[10,(3,3,10),(2,2)],[10,(3,3,10),(2,2)]],sigmoide),PMC([490,50,20,5],sigmoide))
 
-nbEpoques = 5
+nbEpoques = 4
 nbLect = 1
 T = [nbLect*i for i in range(nbEpoques+1)]
 A = [0]
