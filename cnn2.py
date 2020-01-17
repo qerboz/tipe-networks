@@ -163,8 +163,8 @@ class CNN():
                 for k in range(len(erreur[-2])):
                     for l in range(len(erreur[-2][0])):
                         (a,b,c) = tuple(self.max[-1-i][j][k,l,0])
-                        #erreur[-1][a:a+forme[0],b:b+forme[1],c:c+forme[2]] += erreur[-2][k,l,j]*f*self.foncAct.derivee(self.neurones[-2-i][a:a+forme[0],b:b+forme[1],c:c+forme[2]])
-                        erreur[-1][a:a+forme[0],b:b+forme[1],c:c+forme[2]] += erreur[-2][k,l,j]*f*self.foncAct.derivee(self.neurones[-1-i][k,l,j])
+                        erreur[-1][a:a+forme[0],b:b+forme[1],c:c+forme[2]] += erreur[-2][k,l,j]*f*self.foncAct.derivee(self.neurones[-2-i][a:a+forme[0],b:b+forme[1],c:c+forme[2]])
+                        #erreur[-1][a:a+forme[0],b:b+forme[1],c:c+forme[2]] += erreur[-2][k,l,j]*f*self.foncAct.derivee(self.neurones[-1-i][k,l,j])
         erreur = erreur[::-1]
         erreurPoids = [[np.zeros(f.shape) for f in listef] for listef in self.filtres]
         for i in range(len(erreurPoids)):
@@ -174,6 +174,29 @@ class CNN():
                     for l in range(len(erreur[i][0])):
                         (a,b,c) = tuple(self.max[i][j][k,l,0])
                         erreurPoids[i][j] += erreur[i][k,l,j]*self.neurones[i][a:a+forme[0],b:b+forme[1],c:c+forme[2]]
+        return erreurPoids
+        
+    def calcErrBis(self,erreurSortie):
+        erreur = [erreurSortie]
+        for n in range(1,len(self.filtres)):
+            erreur.append(np.zeros((self.neurones[-1-n].shape)))
+            for i in range(len(erreur[n])):
+                for j in range(len(erreur[n][0])):
+                    for k in range(len(erreur[n][0,0])):
+                        for nf in range(len(self.filtres[-n])):
+                            f = self.filtres[-n][nf]
+                            a,b,c = f.shape
+                            for iloc in range(max(i-(a-1),0),min(i+1,i-a+1)):
+                                for jloc in range(max(j-(b-1),0),min(j+1,j-b+1)):
+                                    erreur[n][i,j,k] += erreur[n-1][iloc,jloc,nf]*self.foncAct.derivee(self.neurones[-n][iloc,jloc,nf])*f[i-iloc,j-jloc,k]
+        erreur = erreur[::-1]
+        erreurPoids = [[np.zeros(f.shape) for f in listef] for listef in self.filtres]
+        for fi in range(len(erreurPoids)):
+            for fj in range(len(erreurPoids[fi])):
+                a,b,c = erreurPoids[fi][fj].shape
+                for i in range(len(erreur[fi])):
+                    for j in range(len(erreur[fi][0])):
+                        erreurPoids[fi][fj] += erreur[fi][i,j,fj]*self.neurones[fi][i:i+a,j:j+b,:]
         return erreurPoids
 
     def modifPoids(self,var):
@@ -288,7 +311,7 @@ class reseau():
         return score/len(baseT)
 
 ##Obtention des especes
-os.chdir("/home/cmp1/vancauwenberghe.paul/vancauwenberghe.paul/Travail/TIPE/TRAIN")
+os.chdir("/home/cmp1/petitjean.antoine/petitjean.antoine/TrainDB")
 donneesEntrainementNoms = glob.glob("*.png")
 especes = np.unique(np.array([name.split('_')[0] for name in donneesEntrainementNoms]))
 sorties = [(especes[i],np.array([1*(i==j) for j in range(len(especes))])) for i in range(len(especes))]
@@ -300,7 +323,7 @@ sorties = dict(sorties)
 donneesEntrainement = [(lectImg(X),sorties[X.split('_')[0]]) for X in donneesEntrainementNoms]
 
 ##Obtention des donnees de test
-os.chdir("/home/cmp1/vancauwenberghe.paul/vancauwenberghe.paul/Travail/TIPE/TEST")
+os.chdir("/home/cmp1/petitjean.antoine/petitjean.antoine/TrainDB")
 donneesTestNoms = glob.glob("*.png")
 donneesTest = [(lectImg(X),sorties[X.split('_')[0]]) for X in donneesTestNoms]
 
@@ -308,17 +331,16 @@ donneesTest = [(lectImg(X),sorties[X.split('_')[0]]) for X in donneesTestNoms]
 t = time.time()
 reconnaisseur = reseau(CNN([[10,(5,5,3),(2,2)],[10,(3,3,10),(2,2)],[10,(3,3,10),(2,2)],[10,(3,3,10),(2,2)]],sigmoide),PMC([490,50,20,5],sigmoide))
 
-nbEpoques = 4
-nbLect = 1
+nbEpoques = 10
+nbLect = 40
 T = [nbLect*i for i in range(nbEpoques+1)]
 A = [0]
 for epoque in range(1,nbEpoques+1):
     print("epoque : {}".format(epoque))
     random.shuffle(donneesEntrainement)
     random.shuffle(donneesTest)
-    reconnaisseur.entrainer(donneesEntrainement[:100],nbLect)
-    A.append(reconnaisseur.perf(donneesTest[:100]))
+    reconnaisseur.entrainer(donneesEntrainement,nbLect)
+    A.append(reconnaisseur.perf(donneesTest))
     print("perf : {}".format(A[-1]))
 plt.plot(T,A)
 plt.show()
-print(time.time()-t)
